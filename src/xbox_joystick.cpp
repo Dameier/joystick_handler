@@ -1,3 +1,10 @@
+/*
+ *ROS program to control an AR Parrot drone with an xbox controller and with automated control.
+ *
+ *Written by Malachi Mart and David Meier
+ */
+
+
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Joy.h>
@@ -6,6 +13,7 @@
 #include <ardrone_autonomy/CamSelect.h>
 #include <ardrone_autonomy/LedAnim.h>
 #include <ardrone_autonomy/Navdata.h>
+#include <control_toolbox/pid.h>
 
 class ControlARDrone
 {
@@ -82,8 +90,6 @@ void ControlARDrone::normalCallBack(const geometry_msgs::Twist::ConstPtr& obj){
     double scale= .04;
     double potential = kinetic.linear.x;
     double kin = kinetic.linear.y;
-
-
     if (auto_on) {
         if(x < 140){
             vel.linear.y = scale*(140 - x)/140;
