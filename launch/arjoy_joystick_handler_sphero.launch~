@@ -1,0 +1,14 @@
+<!-- This launches ardrone_autonomy, joy, and image viewer nodes -->
+
+<launch>
+
+  <node name="normalModeling" pkg="normal_rec_ex" type="normal_rec_ex_node" output="screen">
+    <param name="vidSource" value="ardrone/image_raw" />
+    <param name="kineticScaling" value="0.02" />
+    <param name="imageScaling" value="0.25" />
+    <param name="modelFilename" value="$(find normal_rec_ex)/model.yml" />
+  </node>
+
+
+</launch>
+
