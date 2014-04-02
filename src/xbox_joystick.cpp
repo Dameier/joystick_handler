@@ -25,12 +25,14 @@ private:
   void navCallback(const ardrone_autonomy::Navdata::ConstPtr& nav);
   void normalCallBack(const geometry_msgs::Twist::ConstPtr& obj);
   void kineticCallBack(const geometry_msgs::Twist::ConstPtr& kin);
+  void controllerStart();
 
   ros::NodeHandle nh_;
 
   bool hold_a, hold_b, hold_x, hold_y, hold_lbump, hold_rbump, hold_start, hold_reset, hold_xbox, auto_on;
   int linear_x, linear_y, linear_z, angular_x, angular_y, angular_z, buttoncount;
-  double l_scale_, a_scale_;
+  double l_scale_, a_scale_, p, lastXPos, lastYPos, lastZPos;
+  ros::Time timeOfLastCycle;
   geometry_msgs::Twist kinetic;
 
   ros::Publisher vel_pub_;
@@ -48,6 +50,7 @@ private:
   std_srvs::Empty::Request req;
   std_srvs::Empty::Response response;
   std_msgs::Empty empty_msg;
+  control_toolbox::Pid pidController;
 };
 
 ControlARDrone::ControlARDrone() {
@@ -78,7 +81,17 @@ ControlARDrone::ControlARDrone() {
   tag_sub = nh_.subscribe<ardrone_autonomy::Navdata>("/ardrone/navdata", 1000, &ControlARDrone::navCallback, this);
   norm_sub = nh_.subscribe<geometry_msgs::Twist>("/normalModeling/obj_loc", 1000, &ControlARDrone::normalCallBack, this);
   norm_sub2 = nh_.subscribe<geometry_msgs::Twist>("/normalModeling/obj_loc", 1000, &ControlARDrone::normalCallBack, this);
+  if(!pidController.init(ros::NodeHandle(nh_)))
+  {
+    ROS_ERROR("pidController init failed");
+  }
+  controllerStart();
+}
 
+void ControlARDrone::controllerStart()
+{
+  timeOfLastCycle = ros::Time::now();
+  pidController.reset();
 }
 
 void ControlARDrone::normalCallBack(const geometry_msgs::Twist::ConstPtr& obj){
@@ -90,20 +103,28 @@ void ControlARDrone::normalCallBack(const geometry_msgs::Twist::ConstPtr& obj){
     double scale= .04;
     double potential = kinetic.linear.x;
     double kin = kinetic.linear.y;
+    ros::Time nw = ros::Time::now();
+    ros::Duration dt = nw - timeOfLastCycle;
+    float errX = (320.0 - obj->linear.x);
+    float errY = (320.0 - obj->linear.y);
+    float desPosX = lastXPos + pidController.computeCommand(errX, dt);
+    float desPosY = lastYPos + pidController.computeCommand(errY, dt);
     if (auto_on) {
         if(x < 140){
-            vel.linear.y = scale*(140 - x)/140;
+            vel.linear.y = scale*(140 - desPosX)/140;
         }
         if(x > 170) {
-            vel.linear.y = -scale*abs(170 - x)/140;
+            vel.linear.y = -scale*abs(170 - desPosX)/140;
         }if(y < 70){
-            vel.linear.x= scale* (70 - y)/70;
+            vel.linear.x= scale* (70 - desPosY)/70;
         }
         if(y > 100){
-            vel.linear.x= -scale*abs(100 - y)/70;
+            vel.linear.x= -scale*abs(100 - desPosY)/70;
         }
         vel_pub_.publish(vel);
     }
+    lastXPos = desPosX;
+    lastYPos = desPosY;
 }
 
 void ControlARDrone::kineticCallBack(const geometry_msgs::Twist::ConstPtr& kin){
