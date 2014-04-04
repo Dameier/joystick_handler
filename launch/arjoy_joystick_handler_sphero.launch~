@@ -38,7 +38,7 @@
   </node>
 
   <node name="image_viewer" pkg="image_view" type="image_view" output="screen">
-    <remap from="image" to="ardrone/image_raw" />
+    <remap from="image" to="cam/a" />
   </node>
   
 
@@ -52,6 +52,10 @@
 
 	<param name="a_scale_" value="5" type="double"/>
 	<param name="l_scale_" value="5" type="double"/>
+
+	<param name="p" value="0.012" />
+    	<param name="i" value="0.94" />
+   	<param name="d" value="0.003" />
   </node>
 
   <node name="normalModeling" pkg="normal_rec_ex" type="normal_rec_ex_node" output="screen">
